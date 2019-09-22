@@ -1,0 +1,2 @@
+(* Lossless PDF compressor *)
+
