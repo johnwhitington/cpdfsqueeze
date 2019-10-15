@@ -4,6 +4,8 @@ open Pdfio
 
 let version = "Version 2.3 (build of 31st October 2019)"
 
+let shortversion = "2.3"
+
 let _ =
   print_string
     ("cpdfsqueeze "
@@ -273,11 +275,23 @@ let filesize name =
   with
     _ -> 0
 
+let set_producer s pdf =
+  let infodict =
+    match Pdf.lookup_direct pdf "/Info" pdf.Pdf.trailerdict with
+    | Some d -> d
+    | None -> Pdf.Dictionary []
+  in
+    let infodict' = Pdf.add_dict_entry infodict "/Producer" (Pdf.String s) in
+    let objnum = Pdf.addobj pdf infodict' in
+      pdf.Pdf.trailerdict <-
+        Pdf.add_dict_entry pdf.Pdf.trailerdict "/Info" (Pdf.Indirect objnum)
+
 let go () =
   let i_size = filesize !input_file in
   Printf.printf "Initial file size is %i bytes\n" i_size;
   let pdf = pdfread_pdf_of_file (optstring !pw) (optstring !pw) !input_file in
     squeeze pdf;
+    set_producer ("cpdfsqueeze " ^ shortversion ^ " http://coherentpdf.com/") pdf;
     Pdf.remove_unreferenced pdf;
     Pdfwrite.pdf_to_file_options ~recrypt:(optstring !pw) ~generate_objstm:true false None true pdf !output_file;
     let o_size = filesize !output_file in
