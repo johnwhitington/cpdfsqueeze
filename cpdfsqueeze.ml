@@ -278,7 +278,7 @@ let go () =
   Printf.printf "Initial file size is %i bytes\n" i_size;
   let pdf = pdfread_pdf_of_file (optstring !pw) (optstring !pw) !input_file in
     squeeze pdf;
-    Pdfwrite.pdf_to_file_options ~recrypt:(optstring !pw) false None true pdf !output_file;
+    Pdfwrite.pdf_to_file_options ~recrypt:(optstring !pw) ~generate_objstm:true false None true pdf !output_file;
     let o_size = filesize !output_file in
       Printf.printf
         "Final file size is %i bytes, %.2f%% of original.\n"
