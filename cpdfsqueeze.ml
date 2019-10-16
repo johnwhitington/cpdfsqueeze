@@ -20,14 +20,17 @@ it had been loaded. *)
 let pdfread_pdf_of_file ?revision a b c =
   try Pdfread.pdf_of_file ?revision a b c with
     Pdf.PDFError s when String.length s >=10 && String.sub s 0 10 = "Encryption" ->
-      raise (Failure "Bad owner or user password when reading document")
+      Printf.eprintf "Bad owner or user password\n";
+      exit 1
 
-let pw = ref ""
+let opw = ref ""
+let upw = ref ""
 let input_file = ref ""
 let output_file = ref ""
 
 let specs =
-  [("-pw", Arg.Set_string pw, " Provide owner or user password")]
+  [("-upw", Arg.Set_string upw, " User password");
+   ("-opw", Arg.Set_string opw, " Owner password")]
 
 let anon_fun s =
   if !input_file = "" then input_file := s else output_file := s
@@ -289,11 +292,30 @@ let set_producer s pdf =
 let go () =
   let i_size = filesize !input_file in
   Printf.printf "Initial file size is %i bytes\n" i_size;
-  let pdf = pdfread_pdf_of_file (optstring !pw) (optstring !pw) !input_file in
+  let pdf = pdfread_pdf_of_file (optstring !upw) (optstring !opw) !input_file in
+  (* Decrypt with better of owner or user password *)
+  let pdf =
+    if not (Pdfcrypt.is_encrypted pdf) then pdf else
+      begin
+        Printf.printf "Trying to decrypt with owner password %s\n" !opw;
+        match Pdfcrypt.decrypt_pdf_owner !opw pdf with
+        | Some x -> x
+        | None ->
+            Printf.printf "Trying to decrypt with user password %s\n" !upw;
+            match fst (Pdfcrypt.decrypt_pdf !upw pdf) with
+            | Some x -> x
+            | None ->
+                Printf.eprintf "Bad owner or user password\n";
+                exit 1
+      end
+  in
     squeeze pdf;
     set_producer ("cpdfsqueeze " ^ shortversion ^ " http://coherentpdf.com/") pdf;
     Pdf.remove_unreferenced pdf;
-    Pdfwrite.pdf_to_file_options ~recrypt:(optstring !pw) ~generate_objstm:true false None true pdf !output_file;
+    let best_password = if !opw <> "" then !opw else !upw in
+    Printf.printf "Recrypting with password %s\n" best_password;
+    Pdfwrite.pdf_to_file_options
+      ~recrypt:(optstring best_password) ~generate_objstm:true false None false pdf !output_file;
     let o_size = filesize !output_file in
       Printf.printf
         "Final file size is %i bytes, %.2f%% of original.\n"
