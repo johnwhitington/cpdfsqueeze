@@ -294,9 +294,11 @@ let go () =
   Printf.printf "Initial file size is %i bytes\n" i_size;
   let pdf = pdfread_pdf_of_file (optstring !upw) (optstring !opw) !input_file in
   (* Decrypt with better of owner or user password *)
+  let was_decrypted = ref false in
   let pdf =
     if not (Pdfcrypt.is_encrypted pdf) then pdf else
       begin
+        was_decrypted := true;
         Printf.printf "Trying to decrypt with owner password %s\n" !opw;
         match Pdfcrypt.decrypt_pdf_owner !opw pdf with
         | Some x -> x
@@ -314,8 +316,10 @@ let go () =
     Pdf.remove_unreferenced pdf;
     let best_password = if !opw <> "" then !opw else !upw in
     Printf.printf "Recrypting with password %s\n" best_password;
-    Pdfwrite.pdf_to_file_options
-      ~recrypt:(optstring best_password) ~generate_objstm:true false None false pdf !output_file;
+    if !was_decrypted then
+      Pdfwrite.pdf_to_file_options ~recrypt:(Some best_password) ~generate_objstm:true false None false pdf !output_file
+    else
+      Pdfwrite.pdf_to_file_options ~generate_objstm:true false None false pdf !output_file;
     let o_size = filesize !output_file in
       Printf.printf
         "Final file size is %i bytes, %.2f%% of original.\n"
