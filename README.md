@@ -1,8 +1,9 @@
 Copyright Coherent Graphics Ltd http://www.coherentpdf.com/
 
-Syntax: cpdfsqueeze <input file> [-pw <password>] <output file>
+Syntax: cpdfsqueeze <input file> [-upw <password>] [-opw <password>] <output file>
 
-  -pw  Provide owner or user password
+  -upw  Provide user password
+  -opw  Provide owner password
   -help  Display this list of options
   --help  Display this list of options
 
