@@ -2,7 +2,7 @@
 open Pdfutil
 open Pdfio
 
-let version = "Version 2.3 (build of 31st October 2019)"
+let version = "Version 2.3 (build of 17th October 2019)"
 
 let shortversion = "2.3"
 
@@ -36,7 +36,7 @@ let anon_fun s =
   if !input_file = "" then input_file := s else output_file := s
 
 let usage_msg =
-  "Syntax: cpdfsqueeze <input file> [-pw <password>] <output file>\n"
+  "Syntax: cpdfsqueeze <input file> [-upw <pw>] [-opw <pw>] <output file>\n"
 
 let validate_command_line () = 
   if !input_file = "" || !output_file = "" then
@@ -63,6 +63,7 @@ let recompress_stream pdf = function
       | _ -> ()
       end
   | _ -> assert false
+
 let recompress_pdf pdf =
   if not (Pdfcrypt.is_encrypted pdf) then
     Pdf.iter_stream (recompress_stream pdf) pdf;
@@ -270,13 +271,10 @@ let squeeze ?logto pdf =
                 (Printexc.to_string e)))
 
 let filesize name =
-  try
-   let x = open_in_bin name in
-     let r = in_channel_length x in
-       close_in x;
-       r
-  with
-    _ -> 0
+  let x = open_in_bin name in
+  let r = in_channel_length x in
+    close_in x;
+    r
 
 let set_producer s pdf =
   let infodict =
@@ -293,17 +291,14 @@ let go () =
   let i_size = filesize !input_file in
   Printf.printf "Initial file size is %i bytes\n" i_size;
   let pdf = pdfread_pdf_of_file (optstring !upw) (optstring !opw) !input_file in
-  (* Decrypt with better of owner or user password *)
   let was_decrypted = ref false in
   let pdf =
     if not (Pdfcrypt.is_encrypted pdf) then pdf else
       begin
         was_decrypted := true;
-        Printf.printf "Trying to decrypt with owner password %s\n" !opw;
         match Pdfcrypt.decrypt_pdf_owner !opw pdf with
         | Some x -> x
         | None ->
-            Printf.printf "Trying to decrypt with user password %s\n" !upw;
             match fst (Pdfcrypt.decrypt_pdf !upw pdf) with
             | Some x -> x
             | None ->
@@ -327,15 +322,14 @@ let go () =
          ((float o_size /. float i_size) *. 100.)
 
 let _ =
- try
-   Arg.parse specs anon_fun usage_msg;
-   validate_command_line ();
-   go ()
- with
-   (* FIXME Add exit 1 on bad password *)
-   e ->
-     prerr_string
-       ("cpdfsqueeze encountered an unexpected error. Technical Details follow:\n" ^
-        Printexc.to_string e ^ "\n\n");
+  try
+    Arg.parse specs anon_fun usage_msg;
+    validate_command_line ();
+    go ()
+  with
+    e ->
+      prerr_string
+        ("cpdfsqueeze encountered an unexpected error. Technical Details follow:\n" ^
+         Printexc.to_string e ^ "\n\n");
       flush stderr;
-     exit 2
+      exit 2
