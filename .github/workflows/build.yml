@@ -1,0 +1,18 @@
+name: Build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+      - name: Prepare OCaml environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential git ocaml-nox ocaml-findlib libcamlpdf-ocaml-dev
+      - name: Build
+        run: make
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: cpdfsqueeze
