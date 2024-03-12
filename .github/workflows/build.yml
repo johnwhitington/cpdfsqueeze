@@ -1,18 +1,34 @@
 name: Build
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  schedule:
+    - cron: '1 2 5 * *'
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Prepare OCaml environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential git ocaml-nox ocaml-findlib libcamlpdf-ocaml-dev
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: build-essential git ocaml-nox ocaml-findlib libcamlpdf-ocaml-dev
+          version: 1.0
       - name: Build
         run: make
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: build
           path: cpdfsqueeze
+  keepalive:
+    name: Keepalive
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gautamkrishnar/keepalive-workflow@v2
