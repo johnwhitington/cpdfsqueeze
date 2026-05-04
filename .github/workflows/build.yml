@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Prepare OCaml environment
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -30,5 +30,5 @@ jobs:
     permissions:
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: gautamkrishnar/keepalive-workflow@v2
